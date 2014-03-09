@@ -22,7 +22,7 @@ fs = require('fs'),
 path = require('path');
 
 function Request(podConfig) {
-  this.name = 'Request';
+  this.name = 'request';
   this.description = 'HTTP Request',
   this.description_long = 'Makes a HTTP Request, exporting the response body or generating a file',
   this.trigger = false;
