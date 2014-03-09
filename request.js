@@ -107,10 +107,10 @@ Request.prototype.hostCheck = function(host, channel, next) {
 }
 
 Request.prototype.rpc = function(method, sysImports, options, channel, req, res) {
-  var url = req.query.url;
+  var url = channel.config.url;
 
-  if (channel.config.url) {
-    url = channel.config.url;
+  if (req.query.url) {
+    url = req.query.url;
   }
 
   this.hostCheck(url, channel, function(err, blacklisted) {
