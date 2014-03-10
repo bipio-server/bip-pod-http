@@ -40,7 +40,12 @@ Request.prototype.getSchema = function() {
         "method" : {
           "type" : "string",
           "description" : "Request Method",
-          "default" : "GET"
+          "default" : "GET",
+          oneOf : [
+          {
+            "$ref" : "#/config/definitions/method"
+          }
+          ]
         },
         "url" : {
           "type" : "string",
@@ -73,7 +78,12 @@ Request.prototype.getSchema = function() {
         "method" : {
           "type" : "string",
           "description" : "Default Request Method",
-          "default" : "GET"
+          "default" : "GET",
+          oneOf : [
+          {
+            "$ref" : "#/config/definitions/method"
+          }
+          ]
         },
         "url" : {
           "type" : "string",
@@ -83,6 +93,14 @@ Request.prototype.getSchema = function() {
           "type" : "boolean",
           "description" : "POST any present file",
           "default" : false
+        }
+      },
+      "definitions" : {        
+        "method" : {
+          "description" : "HTTP Request Method",
+          "enum" : [ "GET" , "POST", "PUT", "DELETE", "HEAD", "PATCH" ],
+          "enum_label" : [ "GET" , "POST", "PUT", "DELETE", "HEAD", "PATCH" ],
+          "default" : "GET"
         }
       }
     },
