@@ -1,6 +1,6 @@
 {
   "name": "bip-pod-http",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "HTTP Pod for Bipio",
   "keywords": [
   "bip",
