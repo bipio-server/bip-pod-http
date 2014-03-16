@@ -121,7 +121,7 @@ Request.prototype.getSchema = function() {
 Request.prototype.hostCheck = function(host, channel, next) {
   this.$resource._isVisibleHost(host, function(err, blacklisted) {
     next(err, blacklisted.length !== 0);
-  }, channel);
+  }, channel, this.podConfig.whitelist);
 }
 
 Request.prototype.rpc = function(method, sysImports, options, channel, req, res) {
@@ -131,25 +131,33 @@ Request.prototype.rpc = function(method, sysImports, options, channel, req, res)
     url = req.query.url;
   }
 
-  this.hostCheck(url, channel, function(err, blacklisted) {
-    if (err) {
-      res.send(500);
-    } else if (blacklisted) {
-      res.send({ message : 'Requested host [' + url + '] is blacklisted' }, 403);
-    } else if (!url) {
-      res.send(404);
-    } else {
-      if (method === 'proxy') {
-        request(url).pipe(res);
-
-      } else if (method === 'redirect' && url) {
-        res.redirect(url);
-
-      } else {
+  if (url) {
+    this.hostCheck(url, channel, function(err, blacklisted) {
+      if (err) {
+        res.send(500);
+      } else if (blacklisted) {
+        res.send({ message : 'Requested host [' + url + '] is blacklisted' }, 403);
+      } else if (!url) {
         res.send(404);
+      } else {
+        try {
+          if (method === 'proxy') {
+            request(url).pipe(res);
+
+          } else if (method === 'redirect' && url) {
+            res.redirect(url);
+
+          } else {
+            res.send(404);
+          }
+        } catch (e) {
+          res.send(e.message, 500)
+        }
       }
-    }
-  });
+    });
+  } else {
+    res.send(404);
+  }  
 }
 
 Request.prototype.invoke = function(imports, channel, sysImports, contentParts, next) {

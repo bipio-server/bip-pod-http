@@ -23,7 +23,10 @@ request = require('request'),
 HTTP = new Pod({
   name : 'http',
   description : 'HTTP Requests',
-  description_long : 'HTTP Requests'
+  description_long : 'HTTP Requests',
+  config : {
+    "whitelist": [] // host & ip whitelist
+  }  
 });
 
 HTTP.add(require('./request.js'));
