@@ -19,6 +19,8 @@
 
 var request = require('request'),
 fs = require('fs'),
+qs = require('querystring'),
+url = require('url'),
 path = require('path');
 
 function Request(podConfig) {
@@ -212,7 +214,19 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
               );
             }
           } else {
-            var req = request.post(struct.uri, { form : imports }, function(err, res, body) {
+            // convert query string to post vars
+            var formData = {};
+            if (imports.query_string) {
+              if (app.helper.isObject(imports.query_string)) {
+                formData = imports.query_string;
+              } else {
+                formData = qs.parse(imports.query_string);
+              }
+            } else {
+              formData = imports;
+            }
+
+            var req = request.post(struct.uri, { form : formData }, function(err, res, body) {
               if (err) {
                 next(err);
               } else {
@@ -232,7 +246,11 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
           };
 
           if (imports.query_string) {
-            opts.qs = imports.query_string;
+            if (app.helper.isObject(imports.query_string)) {
+              opts.qs = imports.query_string;
+            } else {
+              opts.qs = qs.parse(imports.query_string);
+            }            
           }
 
           var req = request(opts, function(err, res, body) {
