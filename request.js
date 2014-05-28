@@ -216,11 +216,11 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
           } else {
             // convert query string to post vars
             var formData = {};
-            if (imports.query_string) {
-              if (app.helper.isObject(imports.query_string)) {
-                formData = imports.query_string;
+            if (imports.body) {
+              if (app.helper.isObject(imports.body)) {
+                formData = imports.body;
               } else {
-                formData = qs.parse(imports.query_string);
+                formData = qs.parse(imports.body);
               }
             } else {
               formData = imports;
