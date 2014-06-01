@@ -72,6 +72,10 @@ Request.prototype.getSchema = function() {
         "content-type" : {
           "type" : "string",
           "description" : "Response Content Type"
+        },
+        "status" : {
+          "type" : "integer",
+          "description" : "HTTP Response Status"
         }
       }
     },
@@ -95,6 +99,12 @@ Request.prototype.getSchema = function() {
           "type" : "boolean",
           "description" : "POST any present file",
           "default" : false
+        },
+        "retries" : {
+          "type" : "integer",
+          "description" : "# Retries",
+          "default" : 0,
+          "maximum" : 20
         }
       },
       "definitions" : {        
@@ -162,17 +172,34 @@ Request.prototype.rpc = function(method, sysImports, options, channel, req, res)
   }  
 }
 
+function fib(n) {
+  return function(n, a, b) {
+    return n > 0 ? arguments.callee(n - 1, b, a + b) : a;
+  }(n, 0, 1);
+}
+
 Request.prototype.invoke = function(imports, channel, sysImports, contentParts, next) {
   var $resource = this.$resource,
     uri = imports.url && '' !== imports.url ? imports.url : channel.config.url,
     method = imports.method && '' !== imports.method ? imports.method : channel.config.method,
     struct = {},
     self = this,
+    invokeArgs = arguments,
     f;
 
   if (uri && method) {
     struct.method = method;
     struct.uri = uri;
+
+    // normalize retries
+    if (channel.config.retries) {
+      channel.config.retries = Number(channel.config.retries);
+      if (isNaN(channel.config.retries)) {
+        channel.config.retries = 0;
+      } else if (channel.config.retries > 20) {
+        channel.config.retries = 20;
+      }
+    }
 
     this.hostCheck(uri, channel, function(err, blacklisted) {
       if (err) {
@@ -195,10 +222,27 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                 if (err) {
                   next(err);
                 } else {
-                  if (res.statusCode !== 200) {
+                  if (!channel.config.retries && res.statusCode !== 200) {
                     next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
                   } else {
-                    next(false, { response : body, contentType : res.headers['content-type']} )
+                    if (channel.config.retries) {                      
+                      (function(self, channel, invokeArgs) {
+                        if (!channel.config._retry) {
+                          channel.config._retry = 1;
+                        }
+                        var secondsTimeout = fib(channel.config._retry);
+                        $resource.log('Retrying in ' + secondsTimeout + ' seconds');
+                        
+                        setTimeout(function() {
+                          channel.config.retries--;
+                          channel.config._retry++;
+                          self.invoke.apply(self, invokeArgs);
+                        }, secondsTimeout * 1000);
+                        
+                      })(self, channel, invokeArgs);
+                    }
+                    
+                    next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode });
                   }
                 }
               }),
@@ -233,7 +277,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                 if (res.statusCode !== 200) {
                   next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
                 } else {
-                  next(false, { response : body, contentType : res.headers['content-type']} )
+                  next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode} )
                 }
               }
             });
@@ -258,53 +302,73 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
             if (err) {
               next(err);
             } else {
-              if (res.statusCode !== 200) {
+              if (!channel.config.retries && res.statusCode !== 200) {
                 next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
               } else {
 
-                ext = $resource.mime.extension(res.headers['content-type']);
+                if (channel.config.retries) {                      
+                  (function(self, channel, invokeArgs) {
+                    if (!channel.config._retry) {
+                      channel.config._retry = 1;
+                    }
+                    var secondsTimeout = fib(channel.config._retry);
+                    $resource.log('Retrying in ' + secondsTimeout + ' seconds', channel);
+                    
+                    setTimeout(function() {
+                      channel.config.retries--;
+                      channel.config._retry++;
+                      self.invoke.apply(self, invokeArgs);
+                    }, secondsTimeout * 1000);                    
+                  })(self, channel, invokeArgs);                      
+                  if (!ext || 'json' === ext || 'html' === ext) {
+                    next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode}, body.length);
+                  }
+                } else {
 
-                // json/html and anything we can't turn into a file gets pushed into the
-                // body export.
-                if (!ext || 'json' === ext || 'html' === ext) {
-                  next(false, { response : body, contentType : res.headers['content-type']}, body.length);
-                } else {                 
-                  // request is basically useless if you don't know what kind of
-                  // file you're retrieving, so if it looks like a file, request
-                  // it again via the pod streaming helper :
-                  self.pod.getDataDir(channel, 'request', function(err, dataDir) {
-                    var urlFileName = struct.uri.split('/').pop(),
-                      fName = $resource.uuid.v4() + '.' + ext,
-                      localPath = dataDir + fName,
-                      fileStruct = {
-                        txId : sysImports.client.id,
-                        size : body.length,
-                        localpath : localPath,
-                        name : urlFileName || fName,
-                        type : res.headers['content-type'],
-                        encoding : 'binary' // @todo how to get buffer encoding?
-                      };
-                     
-                    // if there's no file extension on retrieved file then set it
-                    var extRegExp = new RegExp('\.' + ext + '$');
-                    if (!extRegExp.test(fileStruct.name)) {
-                      fileStruct.name += '.' + ext;
-                    }                      
-                      
-                    self.pod._httpStreamToFile(struct.uri, localPath, function(err, exports, fileStruct) {
-                      if (err) {
-                        next(err);
-                      } else {
-                        contentParts._files.push(fileStruct);
-                        next(
-                          false,
-                          exports,
-                          contentParts,
-                          fileStruct.size
-                        );
-                      }
-                    }, {}, fileStruct);
-                  });
+                  ext = $resource.mime.extension(res.headers['content-type']);
+
+                  // json/html and anything we can't turn into a file gets pushed into the
+                  // body export.
+                  if (!ext || 'json' === ext || 'html' === ext) {
+                    next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode}, body.length);
+                  } else {                 
+                    // request is basically useless if you don't know what kind of
+                    // file you're retrieving, so if it looks like a file, request
+                    // it again via the pod streaming helper :
+                    self.pod.getDataDir(channel, 'request', function(err, dataDir) {
+                      var urlFileName = struct.uri.split('/').pop(),
+                        fName = $resource.uuid.v4() + '.' + ext,
+                        localPath = dataDir + fName,
+                        fileStruct = {
+                          txId : sysImports.client.id,
+                          size : body.length,
+                          localpath : localPath,
+                          name : urlFileName || fName,
+                          type : res.headers['content-type'],
+                          encoding : 'binary' // @todo how to get buffer encoding?
+                        };
+
+                      // if there's no file extension on retrieved file then set it
+                      var extRegExp = new RegExp('\.' + ext + '$');
+                      if (!extRegExp.test(fileStruct.name)) {
+                        fileStruct.name += '.' + ext;
+                      }                      
+
+                      self.pod._httpStreamToFile(struct.uri, localPath, function(err, exports, fileStruct) {
+                        if (err) {
+                          next(err);
+                        } else {
+                          contentParts._files.push(fileStruct);
+                          next(
+                            false,
+                            exports,
+                            contentParts,
+                            fileStruct.size
+                          );
+                        }
+                      }, {}, fileStruct);
+                    });
+                  }
                 }
               }
             }
