@@ -105,6 +105,11 @@ Request.prototype.getSchema = function() {
           "description" : "# Retries",
           "default" : 0,
           "maximum" : 20
+        },
+        "forward_retry_responses" : {
+          "type" : "boolean",
+          "description" : "Forward Retry Responses",
+          "default" : false
         }
       },
       "definitions" : {        
@@ -185,6 +190,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
     struct = {},
     self = this,
     invokeArgs = arguments,
+    retryResponse = channel.config.forward_retry_responses,
     f;
 
   if (uri && method) {
@@ -224,27 +230,27 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                 } else {
                   if (!channel.config.retries && res.statusCode !== 200) {
                     next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
-                  } else {
-                    if (channel.config.retries) {                      
-                      (function(self, channel, invokeArgs) {
-                        if (!channel.config._retry) {
-                          channel.config._retry = 1;
-                        }
-                        var secondsTimeout = fib(channel.config._retry);
-                        $resource.log('Retrying in ' + secondsTimeout + ' seconds');
-                        
-                        setTimeout(function() {
-                          channel.config.retries--;
-                          channel.config._retry++;
-                          self.invoke.apply(self, invokeArgs);
-                        }, secondsTimeout * 1000);
-                        
-                      })(self, channel, invokeArgs);
-                    }
-                    
+                  } else if (channel.config.retries) {                      
+                    (function(self, channel, invokeArgs) {
+                      if (!channel.config._retry) {
+                        channel.config._retry = 1;
+                      }
+                      var secondsTimeout = fib(channel.config._retry);
+                      $resource.log('Retrying in ' + secondsTimeout + ' seconds', channel);
+
+                      setTimeout(function() {
+                        channel.config.retries--;
+                        channel.config._retry++;
+                        self.invoke.apply(self, invokeArgs);
+                      }, secondsTimeout * 1000);
+
+                    })(self, channel, invokeArgs);
+                  }
+
+                  if (retryResponse) {
                     next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode });
                   }
-                }
+                }                
               }),
                 form = req.form();
 
@@ -306,7 +312,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                 next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
               } else {
 
-                if (channel.config.retries) {                      
+                if (channel.config.retries && res.statusCode !== 200) {                      
                   (function(self, channel, invokeArgs) {
                     if (!channel.config._retry) {
                       channel.config._retry = 1;
@@ -320,7 +326,8 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                       self.invoke.apply(self, invokeArgs);
                     }, secondsTimeout * 1000);                    
                   })(self, channel, invokeArgs);                      
-                  if (!ext || 'json' === ext || 'html' === ext) {
+                  
+                  if ((!ext || 'json' === ext || 'html' === ext) && retryResponse) {
                     next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode}, body.length);
                   }
                 } else {
