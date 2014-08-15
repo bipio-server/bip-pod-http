@@ -1,6 +1,7 @@
 {
   "name": "bip-pod-http",
-  "version": "0.0.11",
+  "version": "0.0.12",
+  "author" : "Michael Pearson",
   "description": "HTTP Pod for Bipio",
   "keywords": [
   "bip",
