@@ -25,8 +25,8 @@ path = require('path');
 
 function Request(podConfig) {
   this.name = 'request';
-  this.description = 'HTTP Request',
-  this.description_long = 'Makes a HTTP Request, exporting the response body or generating a file',
+  this.title = 'HTTP Request',
+  this.description = 'Makes a HTTP Request, exporting the response body or generating a file',
   this.trigger = false;
   this.singleton = false;
   this.auto = false;
@@ -112,7 +112,7 @@ Request.prototype.getSchema = function() {
           "default" : false
         }
       },
-      "definitions" : {        
+      "definitions" : {
         "method" : {
           "description" : "HTTP Request Method",
           "enum" : [ "GET" , "POST", "PUT", "DELETE", "HEAD", "PATCH" ],
@@ -174,7 +174,7 @@ Request.prototype.rpc = function(method, sysImports, options, channel, req, res)
     });
   } else {
     res.send(404);
-  }  
+  }
 }
 
 function fib(n) {
@@ -230,7 +230,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                 } else {
                   if (!channel.config.retries && res.statusCode !== 200) {
                     next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
-                  } else if (channel.config.retries) {                      
+                  } else if (channel.config.retries) {
                     (function(self, channel, invokeArgs) {
                       if (!channel.config._retry) {
                         channel.config._retry = 1;
@@ -250,7 +250,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                   if (retryResponse) {
                     next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode });
                   }
-                }                
+                }
               }),
                 form = req.form();
 
@@ -300,7 +300,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
               opts.qs = imports.query_string;
             } else {
               opts.qs = qs.parse(imports.query_string);
-            }            
+            }
           }
 
           var req = request(opts, function(err, res, body) {
@@ -312,21 +312,21 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                 next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
               } else {
 
-                if (channel.config.retries && res.statusCode !== 200) {                      
+                if (channel.config.retries && res.statusCode !== 200) {
                   (function(self, channel, invokeArgs) {
                     if (!channel.config._retry) {
                       channel.config._retry = 1;
                     }
                     var secondsTimeout = fib(channel.config._retry);
                     $resource.log('Retrying in ' + secondsTimeout + ' seconds', channel);
-                    
+
                     setTimeout(function() {
                       channel.config.retries--;
                       channel.config._retry++;
                       self.invoke.apply(self, invokeArgs);
-                    }, secondsTimeout * 1000);                    
-                  })(self, channel, invokeArgs);                      
-                  
+                    }, secondsTimeout * 1000);
+                  })(self, channel, invokeArgs);
+
                   if ((!ext || 'json' === ext || 'html' === ext) && retryResponse) {
                     next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode}, body.length);
                   }
@@ -338,7 +338,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                   // body export.
                   if (!ext || 'json' === ext || 'html' === ext) {
                     next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode}, body.length);
-                  } else {                 
+                  } else {
                     // request is basically useless if you don't know what kind of
                     // file you're retrieving, so if it looks like a file, request
                     // it again via the pod streaming helper :
@@ -359,7 +359,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                       var extRegExp = new RegExp('\.' + ext + '$');
                       if (!extRegExp.test(fileStruct.name)) {
                         fileStruct.name += '.' + ext;
-                      }                      
+                      }
 
                       self.pod._httpStreamToFile(struct.uri, localPath, function(err, exports, fileStruct) {
                         if (err) {
