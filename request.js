@@ -258,8 +258,8 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                 'file',
                 fs.createReadStream(path.join(struct.multipart[f].localpath)),
                 {
-                  filename : struct.multipart[f].localpath.name,
-                  contentType : struct.multipart[f].localpath.type
+                  filename : struct.multipart[f].name,
+                  contentType : struct.multipart[f].type
                 }
               );
             }
