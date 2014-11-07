@@ -18,10 +18,9 @@
  */
 
 var request = require('request'),
-fs = require('fs'),
-qs = require('querystring'),
-url = require('url'),
-path = require('path');
+  qs = require('querystring'),
+  url = require('url'),
+  path = require('path');
 
 function Request(podConfig) {
   this.name = 'request';
@@ -254,14 +253,19 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
               }),
                 form = req.form();
 
-              form.append(
-                'file',
-                fs.createReadStream(path.join(struct.multipart[f].localpath)),
-                {
-                  filename : struct.multipart[f].name,
-                  contentType : struct.multipart[f].type
+              $resource.file.get(struct.multipart[f], function(err, fileStruct, readStream) {
+                if (err) {
+                  next(err);
+                } else {
+                  form.append('file',
+                    readStream,
+                    {
+                      filename : fileStruct.name,
+                      contentType : fileStruct.type
+                    }
+                  );
                 }
-              );
+              });
             }
           } else {
             // convert query string to post vars
