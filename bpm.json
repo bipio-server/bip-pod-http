@@ -1,0 +1,140 @@
+{
+  "name": "http",
+  "title": "HTTP Requests",
+  "description": "HTTP Requests",
+  "url": "",
+  "trackDuplicates": false,
+  "config": {},
+  "auth": {
+    "strategy": "none"
+  },
+  "rpcs": {},
+  "actions": {
+    "request": {
+      "title": "HTTP Request",
+      "description": "Makes a HTTP Request, exporting the response body or generating a file",
+      "trigger": "invoke",
+      "config": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "description": "Default Request Method",
+            "default": "GET",
+            "oneOf": [
+              {
+                "$ref": "#/config/definitions/method"
+              }
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "Default URL"
+          },
+          "post_files": {
+            "type": "boolean",
+            "description": "POST any present file",
+            "default": false
+          },
+          "retries": {
+            "type": "integer",
+            "description": "# Retries",
+            "default": 0,
+            "maximum": 20
+          },
+          "forward_retry_responses": {
+            "type": "boolean",
+            "description": "Forward Retry Responses",
+            "default": false
+          }
+        },
+        "definitions": {
+          "method": {
+            "description": "HTTP Request Method",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE",
+              "HEAD",
+              "PATCH"
+            ],
+            "enum_label": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE",
+              "HEAD",
+              "PATCH"
+            ],
+            "default": "GET"
+          }
+        },
+        "disposition": [
+          "method",
+          "url",
+          "post_files",
+          "retries",
+          "forward_retry_responses"
+        ]
+      },
+      "exports": {
+        "properties": {
+          "response": {
+            "type": "string",
+            "description": "Response Body"
+          },
+          "content-type": {
+            "type": "string",
+            "description": "Response Content Type"
+          },
+          "status": {
+            "type": "integer",
+            "description": "HTTP Response Status"
+          }
+        }
+      },
+      "imports": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "description": "Request Method",
+            "default": "GET",
+            "oneOf": [
+              {
+                "$ref": "#/config/definitions/method"
+              }
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "URL"
+          },
+          "query_string": {
+            "type": "string",
+            "description": "Query String"
+          },
+          "body": {
+            "type": "string",
+            "description": "POST/PUT Body"
+          }
+        },
+        "disposition": [
+          "method",
+          "url",
+          "query_string",
+          "body"
+        ]
+      },
+      "rpcs": {
+        "proxy": {
+          "contentType": "Mixed Content",
+          "title": "HTTP Proxy"
+        },
+        "redirect": {
+          "contentType": "Mixed Content",
+          "title": "Redirects to configured URL"
+        }
+      }
+    }
+  }
+}
