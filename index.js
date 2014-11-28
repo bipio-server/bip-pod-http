@@ -19,17 +19,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 var Pod = require('bip-pod'),
-request = require('request'),
-HTTP = new Pod({
-  name : 'http',
-  title : 'HTTP Requests',
-  description : 'HTTP Requests',
-  config : {
-    "whitelist": [] // host & ip whitelist
-  }
-});
-
-HTTP.add(require('./request.js'));
+  HTTP = new Pod();
 
 // -----------------------------------------------------------------------------
 module.exports = HTTP;

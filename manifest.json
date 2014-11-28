@@ -118,6 +118,10 @@
             "description": "POST/PUT Body"
           }
         },
+        "required": [
+          "method",
+          "url"
+        ],
         "disposition": [
           "method",
           "url",
