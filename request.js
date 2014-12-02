@@ -27,9 +27,11 @@ function Request() {}
 Request.prototype = {};
 
 Request.prototype.hostCheck = function(host, channel, next) {
+  var config = this.pod.getConfig();
+
   this.$resource._isVisibleHost(host, function(err, blacklisted) {
     next(err, blacklisted.length !== 0);
-  }, channel, this.podConfig.whitelist);
+  }, channel, config.whitelist);
 }
 
 Request.prototype.rpc = function(method, sysImports, options, channel, req, res) {
@@ -78,12 +80,13 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
   var $resource = this.$resource,
     struct = {},
     self = this,
+    uri = imports.url,
     invokeArgs = arguments,
     retryResponse = channel.config.forward_retry_responses,
     f;
 
   struct.method = imports.method;
-  struct.uri = imports.url;
+  struct.uri = uri;
 
   // normalize retries
   if (channel.config.retries) {
