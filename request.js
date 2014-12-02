@@ -83,7 +83,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
     f;
 
   struct.method = imports.method;
-  struct.uri = imports.uri;
+  struct.uri = imports.url;
 
   // normalize retries
   if (channel.config.retries) {
