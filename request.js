@@ -28,8 +28,7 @@ Request.prototype = {};
 
 Request.prototype.hostCheck = function(host, channel, next) {
   var config = this.pod.getConfig();
-
-  this.$resource._isVisibleHost(host, function(err, blacklisted) {
+  this.$resource._isVisibleHost.call(this.pod, host, function(err, blacklisted) {
     next(err, blacklisted.length !== 0);
   }, channel, config.whitelist);
 }
