@@ -106,7 +106,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
 
       // handle posts
       if (/^post$/i.test(struct.method)) {
-        if (channel.config.post_files && app.helper.isTrue(channel.config.post_files) && contentParts && contentParts._files) {
+        if (channel.config.post_files && $resource.helper.isTruthy(channel.config.post_files) && contentParts && contentParts._files) {
           struct.multipart = contentParts._files;
         } else {
           struct.multipart = [];
@@ -162,7 +162,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
           // convert query string to post vars
           var formData = {};
           if (imports.body) {
-            if (app.helper.isObject(imports.body)) {
+            if ($resource.helper.isObject(imports.body)) {
               formData = imports.body;
             } else {
               formData = qs.parse(imports.body);
@@ -191,7 +191,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
         };
 
         if (imports.query_string) {
-          if (app.helper.isObject(imports.query_string)) {
+          if ($resource.helper.isObject(imports.query_string)) {
             opts.qs = imports.query_string;
           } else {
             opts.qs = qs.parse(imports.query_string);
