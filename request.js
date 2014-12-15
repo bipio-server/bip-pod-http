@@ -79,13 +79,13 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
   var $resource = this.$resource,
     struct = {},
     self = this,
-    uri = imports.url,
+    url = imports.url,
     invokeArgs = arguments,
     retryResponse = channel.config.forward_retry_responses,
     f;
 
   struct.method = imports.method;
-  struct.uri = uri;
+  struct.url = url;
 
   // normalize retries
   if (channel.config.retries) {
@@ -97,11 +97,11 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
     }
   }
 
-  this.hostCheck(uri, channel, function(err, blacklisted) {
+  this.hostCheck(url, channel, function(err, blacklisted) {
     if (err) {
       next(err, {});
     } else if (blacklisted) {
-      next('Requested host [' + uri + '] is blacklisted', {});
+      next('Requested host [' + url + '] is blacklisted', {});
     } else {
 
       // handle posts
@@ -114,7 +114,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
 
         if (struct.multipart.length) {
           for (var f = 0; f < struct.multipart.length; f++) {
-            var req = request.post(struct.uri, function(err, res, body) {
+            var req = request.post(struct.url, function(err, res, body) {
               if (err) {
                 next(err);
               } else {
@@ -171,7 +171,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
             formData = imports;
           }
 
-          var req = request.post(struct.uri, { form : formData }, function(err, res, body) {
+          var req = request.post(struct.url, { form : formData }, function(err, res, body) {
             if (err) {
               next(err);
             } else {
@@ -186,7 +186,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
 
       } else {
         var opts = {
-          uri : struct.uri,
+          uri : struct.url,
           method : struct.method
         };
 
@@ -229,46 +229,42 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
 
                 ext = $resource.mime.extension(res.headers['content-type']);
 
+                var exports = {
+                  response : body,
+                  contentType : res.headers['content-type'],
+                  status : res.statusCode
+                };
+
                 // json/html and anything we can't turn into a file gets pushed into the
                 // body export.
                 if (!ext || 'json' === ext || 'html' === ext) {
-                  next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode}, body.length);
+                  next(
+                    false,
+                    exports,
+                    body.length
+                  );
                 } else {
                   // request is basically useless if you don't know what kind of
                   // file you're retrieving, so if it looks like a file, request
                   // it again via the pod streaming helper :
-                  self.pod.getDataDir(channel, 'request', function(err, dataDir) {
-                    var urlFileName = struct.uri.split('/').pop(),
-                      fName = $resource.uuid.v4() + '.' + ext,
-                      localPath = dataDir + fName,
-                      fileStruct = {
-                        txId : sysImports.client.id,
-                        size : body.length,
-                        localpath : localPath,
-                        name : urlFileName || fName,
-                        type : res.headers['content-type'],
-                        encoding : 'binary' // @todo how to get buffer encoding?
-                      };
+                  dataDir = self.pod.getDataDir(channel, 'request');
 
-                    // if there's no file extension on retrieved file then set it
-                    var extRegExp = new RegExp('\.' + ext + '$');
-                    if (!extRegExp.test(fileStruct.name)) {
-                      fileStruct.name += '.' + ext;
+                  var localPath = dataDir + struct.url.split('/').pop();
+
+                  delete exports.response;
+
+                  self.pod._httpStreamToFile(struct.url, localPath, function(err, fileStruct) {
+                    if (err) {
+                      next(err);
+                    } else {
+                      contentParts._files.push(fileStruct);
+                      next(
+                        false,
+                        exports,
+                        contentParts,
+                        fileStruct.size
+                      );
                     }
-
-                    self.pod._httpStreamToFile(struct.uri, localPath, function(err, exports, fileStruct) {
-                      if (err) {
-                        next(err);
-                      } else {
-                        contentParts._files.push(fileStruct);
-                        next(
-                          false,
-                          exports,
-                          contentParts,
-                          fileStruct.size
-                        );
-                      }
-                    }, {}, fileStruct);
                   });
                 }
               }
