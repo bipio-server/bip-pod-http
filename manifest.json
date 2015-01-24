@@ -140,5 +140,9 @@
         }
       }
     }
-  }
+  },
+  "tags": [
+    "http",
+    "productivity"
+  ]
 }
