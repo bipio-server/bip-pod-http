@@ -18,33 +18,33 @@
         "properties": {
           "method": {
             "type": "string",
-            "description": "Default Request Method",
             "default": "GET",
             "oneOf": [
               {
                 "$ref": "#/config/definitions/method"
               }
-            ]
+            ],
+            "title": "Default Request Method"
           },
           "url": {
             "type": "string",
-            "description": "Default URL"
+            "title": "Default URL"
           },
           "post_files": {
             "type": "boolean",
-            "description": "POST any present file",
-            "default": false
+            "default": false,
+            "title": "POST any present file"
           },
           "retries": {
             "type": "integer",
-            "description": "# Retries",
             "default": 0,
-            "maximum": 20
+            "maximum": 20,
+            "title": "# Retries"
           },
           "forward_retry_responses": {
             "type": "boolean",
-            "description": "Forward Retry Responses",
-            "default": false
+            "default": false,
+            "title": "Forward Retry Responses"
           }
         },
         "definitions": {
@@ -81,15 +81,15 @@
         "properties": {
           "response": {
             "type": "string",
-            "description": "Response Body"
+            "title": "Response Body"
           },
           "content-type": {
             "type": "string",
-            "description": "Response Content Type"
+            "title": "Response Content Type"
           },
           "status": {
             "type": "integer",
-            "description": "HTTP Response Status"
+            "title": "HTTP Response Status"
           }
         }
       },
@@ -97,25 +97,25 @@
         "properties": {
           "method": {
             "type": "string",
-            "description": "Request Method",
             "default": "GET",
             "oneOf": [
               {
                 "$ref": "#/config/definitions/method"
               }
-            ]
+            ],
+            "title": "Request Method"
           },
           "url": {
             "type": "string",
-            "description": "URL"
+            "title": "URL"
           },
           "query_string": {
             "type": "string",
-            "description": "Query String"
+            "title": "Query String"
           },
           "body": {
             "type": "string",
-            "description": "POST/PUT Body"
+            "title": "POST/PUT Body"
           }
         },
         "required": [
