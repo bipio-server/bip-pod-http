@@ -30,4 +30,4 @@ Our open source license is the appropriate option if you are creating an open so
 If you'd like to integrate BipIO with your proprietary system, GPLv3 is likely incompatible. To secure a Commercial OEM License for Bipio, please [reach us](mailto:hello@bip.io)
 
 
-Copyright (c) 2010-2014  [Michael Pearson](https://github.com/mjpearson)
+Copyright (c) 2010-2015  [Michael Pearson](https://github.com/mjpearson)

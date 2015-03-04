@@ -111,7 +111,8 @@
           },
           "query_string": {
             "type": "string",
-            "title": "Query String"
+            "title": "Query String",
+            "description" : "eg: foo=bar&baz=qux"
           },
           "body": {
             "type": "string",
