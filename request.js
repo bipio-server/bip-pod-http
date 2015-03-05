@@ -253,7 +253,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
 
                   delete exports.response;
 
-                  self.pod._httpStreamToFile(struct.url, localPath, function(err, fileStruct) {
+                  $resource._httpStreamToFile(struct.url, localPath, function(err, fileStruct) {
                     if (err) {
                       next(err);
                     } else {
