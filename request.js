@@ -81,19 +81,19 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
     self = this,
     url = imports.url,
     invokeArgs = arguments,
-    retryResponse = channel.config.forward_retry_responses,
+    retryResponse = imports.forward_retry_responses,
     f;
 
   struct.method = imports.method;
   struct.url = url;
 
   // normalize retries
-  if (channel.config.retries) {
-    channel.config.retries = Number(channel.config.retries);
-    if (isNaN(channel.config.retries)) {
-      channel.config.retries = 0;
-    } else if (channel.config.retries > 20) {
-      channel.config.retries = 20;
+  if (imports.retries) {
+    imports.retries = Number(imports.retries);
+    if (isNaN(imports.retries)) {
+      imports.retries = 0;
+    } else if (imports.retries > 20) {
+      imports.retries = 20;
     }
   }
 
@@ -106,7 +106,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
 
       // handle posts
       if (/^post$/i.test(struct.method)) {
-        if (channel.config.post_files && $resource.helper.isTruthy(channel.config.post_files) && contentParts && contentParts._files) {
+        if (imports.post_files && $resource.helper.isTruthy(imports.post_files) && contentParts && contentParts._files) {
           struct.multipart = contentParts._files;
         } else {
           struct.multipart = [];
@@ -118,19 +118,19 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
               if (err) {
                 next(err);
               } else {
-                if (!channel.config.retries && res.statusCode !== 200) {
+                if (!imports.retries && res.statusCode !== 200) {
                   next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
-                } else if (channel.config.retries) {
+                } else if (imports.retries) {
                   (function(self, channel, invokeArgs) {
-                    if (!channel.config._retry) {
-                      channel.config._retry = 1;
+                    if (!imports._retry) {
+                      imports._retry = 1;
                     }
-                    var secondsTimeout = fib(channel.config._retry);
+                    var secondsTimeout = fib(imports._retry);
                     $resource.log('Retrying in ' + secondsTimeout + ' seconds', channel);
 
                     setTimeout(function() {
-                      channel.config.retries--;
-                      channel.config._retry++;
+                      imports.retries--;
+                      imports._retry++;
                       self.invoke.apply(self, invokeArgs);
                     }, secondsTimeout * 1000);
 
@@ -203,21 +203,21 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
           if (err) {
             next(err);
           } else {
-            if (!channel.config.retries && res.statusCode !== 200) {
+            if (!imports.retries && res.statusCode !== 200) {
               next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
             } else {
 
-              if (channel.config.retries && res.statusCode !== 200) {
+              if (imports.retries && res.statusCode !== 200) {
                 (function(self, channel, invokeArgs) {
-                  if (!channel.config._retry) {
-                    channel.config._retry = 1;
+                  if (!imports._retry) {
+                    imports._retry = 1;
                   }
-                  var secondsTimeout = fib(channel.config._retry);
+                  var secondsTimeout = fib(imports._retry);
                   $resource.log('Retrying in ' + secondsTimeout + ' seconds', channel);
 
                   setTimeout(function() {
-                    channel.config.retries--;
-                    channel.config._retry++;
+                    imports.retries--;
+                    imports._retry++;
                     self.invoke.apply(self, invokeArgs);
                   }, secondsTimeout * 1000);
                 })(self, channel, invokeArgs);
@@ -254,6 +254,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                   delete exports.response;
 
                   $resource._httpStreamToFile(struct.url, localPath, function(err, fileStruct) {
+
                     if (err) {
                       next(err);
                     } else {
