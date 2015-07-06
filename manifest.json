@@ -117,6 +117,11 @@
           "body": {
             "type": "string",
             "title": "POST/PUT Body"
+          },
+          "headers" : {
+            "type" : "text",
+            "title" : "HTTP Headers",
+            "description" : "1 header per line, for example : Content-Type: application/json"
           }
         },
         "required": [
@@ -127,7 +132,8 @@
           "method",
           "url",
           "query_string",
-          "body"
+          "body",
+          "headers"
         ]
       },
       "rpcs": {

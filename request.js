@@ -75,9 +75,27 @@ function fib(n) {
   }(n, 0, 1);
 }
 
+function parseHeaders(headerStr) {
+  var lines = headerStr.split(/\r?\n/),
+    headers = {},
+    tokens,
+    k;
+
+  for (var i = 0; i < lines.length; i++) {
+    if (lines[i]) {
+      tokens = lines[i].split(':');
+      k = tokens.shift();
+      headers[k] = tokens.join(':').trim();
+    }
+  }
+
+  return headers;
+}
+
 Request.prototype.invoke = function(imports, channel, sysImports, contentParts, next) {
   var $resource = this.$resource,
     struct = {},
+    headers = {},
     self = this,
     url = imports.url,
     invokeArgs = arguments,
@@ -97,6 +115,10 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
     }
   }
 
+  if (imports.headers) {
+    headers = parseHeaders(imports.headers);
+  }
+
   this.hostCheck(url, channel, function(err, blacklisted) {
     if (err) {
       next(err, {});
@@ -114,34 +136,39 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
 
         if (struct.multipart.length) {
           for (var f = 0; f < struct.multipart.length; f++) {
-            var req = request.post(struct.url, function(err, res, body) {
-              if (err) {
-                next(err);
-              } else {
-                if (!imports.retries && res.statusCode !== 200) {
-                  next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
-                } else if (imports.retries) {
-                  (function(self, channel, invokeArgs) {
-                    if (!imports._retry) {
-                      imports._retry = 1;
-                    }
-                    var secondsTimeout = fib(imports._retry);
-                    $resource.log('Retrying in ' + secondsTimeout + ' seconds', channel);
+            var req = request.post(
+              struct.url,
+              {
+                headers : headers
+              },
+              function(err, res, body) {
+                if (err) {
+                  next(err);
+                } else {
+                  if (!imports.retries && res.statusCode !== 200) {
+                    next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
+                  } else if (imports.retries) {
+                    (function(self, channel, invokeArgs) {
+                      if (!imports._retry) {
+                        imports._retry = 1;
+                      }
+                      var secondsTimeout = fib(imports._retry);
+                      $resource.log('Retrying in ' + secondsTimeout + ' seconds', channel);
 
-                    setTimeout(function() {
-                      imports.retries--;
-                      imports._retry++;
-                      self.invoke.apply(self, invokeArgs);
-                    }, secondsTimeout * 1000);
+                      setTimeout(function() {
+                        imports.retries--;
+                        imports._retry++;
+                        self.invoke.apply(self, invokeArgs);
+                      }, secondsTimeout * 1000);
 
-                  })(self, channel, invokeArgs);
+                    })(self, channel, invokeArgs);
+                  }
+
+                  if (retryResponse) {
+                    next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode });
+                  }
                 }
-
-                if (retryResponse) {
-                  next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode });
-                }
-              }
-            }),
+              }),
               form = req.form();
 
             $resource.file.get(struct.multipart[f], function(err, fileStruct, readStream) {
@@ -171,7 +198,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
             formData = imports;
           }
 
-          var req = request.post(struct.url, { form : formData }, function(err, res, body) {
+          var req = request.post(struct.url, { form : formData, headers : headers }, function(err, res, body) {
             if (err) {
               next(err);
             } else {
@@ -187,7 +214,8 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
       } else {
         var opts = {
           uri : struct.url,
-          method : struct.method
+          method : struct.method,
+          headers : headers
         };
 
         if (imports.query_string) {
@@ -253,20 +281,25 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
 
                   delete exports.response;
 
-                  $resource._httpStreamToFile(struct.url, localPath, function(err, fileStruct) {
-
-                    if (err) {
-                      next(err);
-                    } else {
-                      contentParts._files.push(fileStruct);
-                      next(
-                        false,
-                        exports,
-                        contentParts,
-                        fileStruct.size
-                      );
-                    }
-                  });
+                  $resource._httpStreamToFile(
+                    struct.url,
+                    localPath,
+                    function(err, fileStruct) {
+                      if (err) {
+                        next(err);
+                      } else {
+                        contentParts._files.push(fileStruct);
+                        next(
+                          false,
+                          exports,
+                          contentParts,
+                          fileStruct.size
+                        );
+                      }
+                    },
+                    false,
+                    headers
+                  );
                 }
               }
             }
