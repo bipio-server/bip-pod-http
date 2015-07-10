@@ -53,7 +53,30 @@ Request.prototype.rpc = function(method, sysImports, options, channel, req, res)
       } else {
         try {
           if (method === 'proxy') {
-            request(url).pipe(res);
+            var headers = app._.clone(req.headers);
+
+            // if url has basic auth injected into url, then drop it
+            // from proxy
+            if (/\/\/.*:.*@/.test(url) )
+              delete headers.authorization;
+            }
+            delete headers.host;
+
+            var isJSON = false;
+            try {
+              JSON.stringify(req.body);
+              isJSON = true;
+            } catch (e) {};
+
+            var options = {
+              uri : url,
+              method : req.method,
+              headers : headers,
+              json : isJSON,
+              body : req.body
+            }
+
+            request(options).pipe(res);
 
           } else if (method === 'redirect' && url) {
             res.redirect(url);
