@@ -57,7 +57,7 @@ Request.prototype.rpc = function(method, sysImports, options, channel, req, res)
 
             // if url has basic auth injected into url, then drop it
             // from proxy
-            if (/\/\/.*:.*@/.test(url) )
+            if (/\/\/.*:.*@/.test(url) ) {
               delete headers.authorization;
             }
             delete headers.host;
