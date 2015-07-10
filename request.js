@@ -34,10 +34,12 @@ Request.prototype.hostCheck = function(host, channel, next) {
 }
 
 Request.prototype.rpc = function(method, sysImports, options, channel, req, res) {
-  var url = channel.config.url;
+  var url;
 
   if (req.query.url) {
     url = req.query.url;
+  } else if (channel && channel.config && channel.config.url) {
+    url = channel.config.url;
   }
 
   if (url) {
