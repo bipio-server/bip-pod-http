@@ -29,7 +29,7 @@ Request.prototype = {};
 Request.prototype.hostCheck = function(host, channel, next) {
   var config = this.pod.getConfig();
   this.$resource._isVisibleHost.call(this.pod, host, function(err, blacklisted) {
-    next(err, blacklisted.length !== 0);
+    next(err, blacklisted ? blacklisted.length !== 0 : false);
   }, channel, config.whitelist);
 }
 
@@ -44,6 +44,7 @@ Request.prototype.rpc = function(method, sysImports, options, channel, req, res)
 
   if (url) {
     this.hostCheck(url, channel, function(err, blacklisted) {
+
       if (err) {
         res.send(500);
       } else if (blacklisted) {
