@@ -291,7 +291,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
 
                 // json/html and anything we can't turn into a file gets pushed into the
                 // body export.
-                if (!ext || 'json' === ext || 'html' === ext) {
+                if (!ext || 'json' === ext || 'html' === ext || 'xml' === ext) {
                   next(
                     false,
                     exports,
