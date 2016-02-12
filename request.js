@@ -44,7 +44,6 @@ Request.prototype.rpc = function(method, sysImports, options, channel, req, res)
 
   if (url) {
     this.hostCheck(url, channel, function(err, blacklisted) {
-
       if (err) {
         res.send(500);
       } else if (blacklisted) {
@@ -78,7 +77,6 @@ Request.prototype.rpc = function(method, sysImports, options, channel, req, res)
             }
 
             request(options).pipe(res);
-
           } else if (method === 'redirect' && url) {
             res.redirect(url);
 
@@ -151,7 +149,6 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
     } else if (blacklisted) {
       next('Requested host [' + url + '] is blacklisted', {});
     } else {
-
       // handle posts
       if (/^post$/i.test(struct.method)) {
         if (imports.post_files && $resource.helper.isTruthy(imports.post_files) && contentParts && contentParts._files) {
@@ -228,7 +225,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
             if (err) {
               next(err);
             } else {
-              if (res.statusCode !== 200) {
+              if (!(res.statusCode === 200 || res.statusCode === 201)) {
                 next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
               } else {
                 next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode} )
@@ -239,10 +236,14 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
 
       } else {
         var opts = {
-          uri : struct.url,
-          method : struct.method,
-          headers : headers
+          uri:     struct.url,
+          method:  struct.method,
+          headers: headers
         };
+
+        if (/^put$/i.test(opts.method) && imports.body) {
+          opts.body = imports.body
+        }
 
         if (imports.query_string) {
           if ($resource.helper.isObject(imports.query_string)) {
@@ -260,7 +261,6 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
             if (!imports.retries && res.statusCode !== 200) {
               next('Request Fail ' + (res.headers.status || res.headers['www-authenticate']));
             } else {
-
               if (imports.retries && res.statusCode !== 200) {
                 (function(self, channel, invokeArgs) {
                   if (!imports._retry) {
@@ -280,6 +280,9 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                   next(false, { response : body, contentType : res.headers['content-type'], status : res.statusCode}, body.length);
                 }
               } else {
+                if (/^put$/i.test(opts.method)) {
+                  res.headers['content-type'] = "application/json";
+                }
 
                 ext = $resource.mime.extension(res.headers['content-type']);
 
@@ -292,11 +295,7 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                 // json/html and anything we can't turn into a file gets pushed into the
                 // body export.
                 if (!ext || 'json' === ext || 'html' === ext || 'xml' === ext) {
-                  next(
-                    false,
-                    exports,
-                    body.length
-                  );
+                  next(false, exports, body.length);
                 } else {
                   // request is basically useless if you don't know what kind of
                   // file you're retrieving, so if it looks like a file, request
@@ -315,17 +314,13 @@ Request.prototype.invoke = function(imports, channel, sysImports, contentParts, 
                         next(err);
                       } else {
                         contentParts._files.push(fileStruct);
-                        next(
-                          false,
-                          exports,
-                          contentParts,
-                          fileStruct.size
-                        );
+                        next(false, exports, contentParts, fileStruct.size);
                       }
                     },
                     false,
                     headers
                   );
+
                 }
               }
             }
