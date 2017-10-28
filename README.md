@@ -7,7 +7,7 @@ HTTP pod for [bipio](https://bip.io).
 
 From bipio server root directory
 
-    npm install bip-pod-HTTP
+    npm install bip-pod-http
     ./tools/pod-install.js -a http [-u optional account-wide channel auto install]
 
 The pod-install script is a server script which will register the pod with the bipio server and add sparse
